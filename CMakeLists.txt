@@ -9,4 +9,7 @@ include(cmake/development.cmake)
 include(cmake/project_preferences.cmake)
 include(cmake/sanitizers.cmake)
 
+add_subdirectory(external)
+add_subdirectory(lib)
 add_subdirectory(src)
+add_subdirectory(test)
