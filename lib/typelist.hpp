@@ -164,48 +164,52 @@ template <typename T, typename TList>
 using Append = typename TAppend<T, TList>::TType;
 
 ////////////////////////////////////////////////////////////////////////////////
-// TODO: Test Erase
 
 template <typename T, typename TList>
 struct TErase {};
+
+template <typename T>
+struct TErase<T, EmptyTypeList> {
+    using TType = EmptyTypeList;
+};
 
 template <typename T, typename ...TArgs>
 struct TErase<T, TTypeList<TArgs...>> {
     using TType = typename std::conditional_t<
         std::is_same_v<typename TTypeList<TArgs...>::THead, T>,
         typename TTypeList<TArgs...>::TTail,
-        Append<T, typename TTypeList<TArgs...>::TTail>>;
+        Append<
+            typename TErase<T, typename TTypeList<TArgs...>::TTail>::TType,
+            TTypeList<typename TTypeList<TArgs...>::THead>>>;
 };
 
 template <typename T, typename TList>
 using Erase = typename TErase<T, TList>::TType;
 
 ////////////////////////////////////////////////////////////////////////////////
-// TODO: Test EraseAll
 
 template <typename T, typename TList>
 struct TEraseAll {};
 
-template <typename T, typename ...TArgs>
-struct TEraseAll<T, TTypeList<TArgs...>> {
-private:
-    using TErased = typename TEraseAll<
-        T,
-        typename TTypeList<TArgs...>::TTail>::TType;
-    using THead = typename TTypeList<TArgs...>::THead;
-
-public:
-    using TType = typename std::conditional_t<
-        std::is_same_v<THead, T>,
-        TErased,
-        Append<TErased, TTypeList<THead>>>;
+template <typename T>
+struct TEraseAll<T, EmptyTypeList> {
+    using TType = EmptyTypeList;
 };
 
+template <typename T, typename ...TArgs>
+struct TEraseAll<T, TTypeList<TArgs...>> {
+    using TType = typename std::conditional_t<
+        std::is_same_v<typename TTypeList<TArgs...>::THead, T>,
+        typename TEraseAll<T, typename TTypeList<TArgs...>::TTail>::TType,
+        Append<
+            typename TEraseAll<T, typename TTypeList<TArgs...>::TTail>::TType,
+            TTypeList<typename TTypeList<TArgs...>::THead>>>;
+};
+;
 template <typename T, typename TList>
 using EraseAll = typename TEraseAll<T, TList>::TType;
 
 ////////////////////////////////////////////////////////////////////////////////
-// TODO: Test EraseDuplicates
 
 template <typename TList>
 struct TEraseDuplicates {};
@@ -217,71 +221,86 @@ struct TEraseDuplicates<EmptyTypeList> {
 
 template <typename ...TArgs>
 struct TEraseDuplicates<TTypeList<TArgs...>> {
-private:
-    using TTail = typename TEraseDuplicates<
-        typename TTypeList<TArgs...>::Tail>::TType;
-    using TList = Erase<typename TTypeList<TArgs...>::THead, TTail>;
-
 public:
     using TType = Append<
-        TList,
-        TEraseDuplicates<typename TTypeList<TArgs...>::TTail>>;
+        Erase<
+            typename TTypeList<TArgs...>::THead,
+            typename TEraseDuplicates<
+                typename TTypeList<TArgs...>::TTail>::TType>,
+        TTypeList<typename TTypeList<TArgs...>::THead>>;
 };
 
 template <typename TList>
 using EraseDuplicates = typename TEraseDuplicates<TList>::TType;
 
 ////////////////////////////////////////////////////////////////////////////////
-// TODO: Test Replace
 
 template <typename TTo, typename TFrom, typename TList>
 struct TReplace {};
 
-template <typename TTo, typename TFrom, typename ...TArgs>
-struct TReplace<TTo, TFrom, TTypeList<TFrom, TArgs...>> {
-    using TType = Append<
-        TTypeList<TTo>,
-        typename TTypeList<TArgs...>::TTail>;
+template <typename TTo, typename TFrom>
+struct TReplace<TTo, TFrom, EmptyTypeList> {
+    using TType = EmptyTypeList;
 };
 
 template <typename TTo, typename TFrom, typename ...TArgs>
 struct TReplace<TTo, TFrom, TTypeList<TArgs...>> {
-    using TType = Append<
-        typename TTypeList<TArgs...>::THead,
-        typename TReplace<TTo, TFrom, typename TTypeList<TArgs...>::TTail>::TType>;
+    using TType = typename std::conditional_t<
+        std::is_same_v<typename TTypeList<TArgs...>::THead, TFrom>,
+        Append<
+            typename TTypeList<TArgs...>::TTail,
+            TTypeList<TTo>>,
+        Append<
+            typename TReplace<
+                TTo,
+                TFrom,
+                typename TTypeList<TArgs...>::TTail>::TType,
+            TTypeList<typename TTypeList<TArgs...>::THead>>>;
 };
 
 template <typename TTo, typename TFrom, typename TList>
 using Replace = typename TReplace<TTo, TFrom, TList>::TType;
 
 ////////////////////////////////////////////////////////////////////////////////
-// TODO: Test ReplaceAll
 
 template <typename TTo, typename TFrom, typename TList>
 struct TReplaceAll {};
 
-template <typename TTo, typename TFrom, typename ...TArgs>
-struct TReplaceAll<TTo, TFrom, TTypeList<TFrom, TArgs...>> {
-    using TType = Append<
-        TTypeList<TTo>,
-        typename TReplaceAll<TTo, TFrom, typename TTypeList<TArgs...>::TTail>::TType>;
+template <typename TTo, typename TFrom>
+struct TReplaceAll<TTo, TFrom, EmptyTypeList> {
+    using TType = EmptyTypeList;
 };
 
 template <typename TTo, typename TFrom, typename ...TArgs>
 struct TReplaceAll<TTo, TFrom, TTypeList<TArgs...>> {
-    using TType = Append<
-        typename TTypeList<TArgs...>::THead,
-        typename TReplaceAll<TTo, TFrom, typename TTypeList<TArgs...>::TTail>::TType>;
+    using TType = typename std::conditional_t<
+        std::is_same_v<typename TTypeList<TArgs...>::THead, TFrom>,
+        Append<
+            typename TReplaceAll<
+                TTo,
+                TFrom,
+                typename TTypeList<TArgs...>::TTail>::TType,
+            TTypeList<TTo>>,
+        Append<
+            typename TReplaceAll<
+                TTo,
+                TFrom,
+                typename TTypeList<TArgs...>::TTail>::TType,
+            TTypeList<typename TTypeList<TArgs...>::THead>>>;
 };
 
 template <typename TTo, typename TFrom, typename TList>
 using ReplaceAll = typename TReplaceAll<TTo, TFrom, TList>::TType;
 
 ////////////////////////////////////////////////////////////////////////////////
-// TODO: Test MostDerived
 
 template <typename TBase, typename TList>
 struct TMostDerived {};
+
+template <typename TBase>
+struct TMostDerived<TBase, EmptyTypeList> {
+    using TType = TBase;
+};
 
 template <typename TBase, typename ...TArgs>
 struct TMostDerived<TBase, TTypeList<TArgs...>> {
@@ -301,10 +320,14 @@ template <typename TBase, typename TList>
 using MostDerived = typename TMostDerived<TBase, TList>::TType;
 
 ////////////////////////////////////////////////////////////////////////////////
-// TODO: Test DerivedToFront
 
 template <typename TList>
 struct TDerivedToFront {};
+
+template <>
+struct TDerivedToFront<EmptyTypeList> {
+    using TType = EmptyTypeList;
+};
 
 template <typename ...TArgs>
 struct TDerivedToFront<TTypeList<TArgs...>> {
@@ -313,22 +336,21 @@ private:
         typename TTypeList<TArgs...>::THead,
         typename TTypeList<TArgs...>::TTail>;
     using TTemp = Replace<
-        TCandidate,
         typename TTypeList<TArgs...>::THead,
+        TCandidate,
         typename TTypeList<TArgs...>::TTail>;
     using TList = typename TDerivedToFront<TTemp>::TType;
 
 public:
     using TType = Append<
         typename TDerivedToFront<TList>::TType,
-        TCandidate>;
+        TTypeList<TCandidate>>;
 };
 
 template <typename TList>
 using DerivedToFront = typename TDerivedToFront<TList>::TType;
 
 ////////////////////////////////////////////////////////////////////////////////
-// TODO: Test Slice
 
 namespace internal {
 
@@ -341,20 +363,22 @@ struct TSliceHelper<IndexBegin, IndexEnd, EmptyTypeList> {
 };
 
 template <uint64_t IndexBegin, typename ...TArgs>
-struct TSliceHelper<IndexBegin, IndexBegin, TTypeList<TArgs...>> {
+struct TSliceHelper<IndexBegin, IndexBegin + 1, TTypeList<TArgs...>> {
     using TType = TTypeList<TypeAt<IndexBegin, TTypeList<TArgs...>>>;
 };
 
 template <uint64_t IndexBegin, uint64_t IndexEnd, typename ...TArgs>
 struct TSliceHelper<IndexBegin, IndexEnd, TTypeList<TArgs...>> {
 private:
-    static_assert(IndexEnd >= IndexBegin, "Invalid range");
-    using TList = TTypeList<TArgs...>;
+    static_assert(IndexEnd > IndexBegin, "Invalid range");
 
 public:
     using TType = Add<
-        TypeAt<IndexEnd, TList>,
-        typename TSliceHelper<IndexBegin, IndexEnd - 1, TList>::TType>;
+        TypeAt<IndexEnd - 1, TTypeList<TArgs...>>,
+        typename TSliceHelper<
+            IndexBegin,
+            IndexEnd - 1,
+            TTypeList<TArgs...>>::TType>;
 };
 
 template <uint64_t IndexBegin, uint64_t IndexEnd, typename TList>
@@ -367,14 +391,16 @@ struct TSlice {};
 
 template <uint64_t IndexBegin, uint64_t IndexEnd, typename ...TArgs>
 struct TSlice<IndexBegin, IndexEnd, TTypeList<TArgs...>> {
-    using TType = internal::SliceHelper<IndexBegin, IndexEnd, TTypeList<TArgs...>>;
+    using TType = internal::SliceHelper<
+        IndexBegin,
+        IndexEnd,
+        TTypeList<TArgs...>>;
 };
 
 template <uint64_t IndexBegin, uint64_t IndexEnd, typename TList>
 using Slice = typename TSlice<IndexBegin, IndexEnd, TList>::TType;
 
 ////////////////////////////////////////////////////////////////////////////////
-// TODO: Test CutTo
 
 template <uint64_t Index, typename TList>
 struct TCutTo {};
@@ -388,7 +414,6 @@ template <uint64_t Index, typename TList>
 using CutTo = typename TCutTo<Index, TList>::TType;
 
 ////////////////////////////////////////////////////////////////////////////////
-// TODO: Test CutFrom
 
 template <uint64_t Index, typename TList>
 struct TCutFrom {};
@@ -399,14 +424,13 @@ private:
     using TList = TTypeList<TArgs...>;
 
 public:
-    using TType = typename TSlice<Index, kLength<TList> - 1, TList>::TType;
+    using TType = typename TSlice<Index, kLength<TList>, TList>::TType;
 };
 
 template <uint64_t Index, typename TList>
 using CutFrom = typename TCutFrom<Index, TList>::TType;
 
 ////////////////////////////////////////////////////////////////////////////////
-// TODO: Test operator<<
 
 std::ostream& operator<<(std::ostream& ostr, EmptyTypeList) {
     ostr << "{}";
@@ -428,10 +452,10 @@ void PrintTypeListHead(TTypeList<TArgs...> tl, std::ostream& ostr) {
 
 template <typename THead, typename ...TArgs>
 void PrintTypeListHelper(TTypeList<THead, TArgs...>, std::ostream& ostr) {
-    PrintTypeListHead(std::declval<THead>(), ostr);
+    PrintTypeListHead(THead{}, ostr);
     if (!kIsEmpty<TTypeList<TArgs...>>) {
         ostr << ' ';
-        PrintTypeListHelper<TArgs...>(std::declval<TTypeList<TArgs...>>(), ostr);
+        PrintTypeListHelper<TArgs...>(TTypeList<TArgs...>{}, ostr);
     }
 }
 
